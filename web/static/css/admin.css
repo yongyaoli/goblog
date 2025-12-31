@@ -1,0 +1,3 @@
+/* 全局后台导航样式优化 */
+.navbar .nav-link { font-size: 0.9rem; }
+.navbar .nav-link .me-1 { margin-right: .25rem !important; }

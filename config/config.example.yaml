@@ -1,0 +1,12 @@
+server:
+  port: 8080
+mysql:
+  dsn: "root:password@tcp(127.0.0.1:3306)/gocms?charset=utf8mb4&parseTime=True&loc=Local"
+redis:
+  addr: ""
+  password: ""
+jwt:
+  secret: "please-change-this-secret"
+admin:
+  default_user: "admin"
+  default_pass: "admin123"

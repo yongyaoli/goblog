@@ -1,0 +1,260 @@
+{{ define "admin/post_edit.html" }}
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>编辑文章</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<link rel="stylesheet" href="/static/css/admin.css">
+<link rel="stylesheet" href="/static/iconfont/iconfont.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css">
+<script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand" href="/admin/dashboard">后台管理</a>
+    <ul class="navbar-nav ms-auto">
+      {{ range .menus }}
+        {{ if .Children }}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">{{ if .Icon }}<i class="{{ .Icon }} me-1"></i>{{ end }}{{ .Title }}</a>
+          <ul class="dropdown-menu">
+            {{ range .Children }}
+            <li><a class="dropdown-item {{ if eq $.path .Path }}active{{ end }}" href="{{ .Path }}">{{ .Title }}</a></li>
+            {{ end }}
+          </ul>
+        </li>
+        {{ else }}
+        <li class="nav-item"><a class="nav-link {{ if eq $.path .Path }}active{{ end }}" href="{{ .Path }}">{{ if .Icon }}<i class="{{ .Icon }} me-1"></i>{{ end }}{{ .Title }}</a></li>
+        {{ end }}
+      {{ end }}
+    </ul>
+  </div>
+</nav>
+<main class="container py-4">
+  <form id="editForm" class="vstack gap-2">
+    <input class="form-control" name="title" placeholder="标题" value="{{ .post.Title }}">
+    <input class="form-control" name="slug" placeholder="Slug" value="{{ .post.Slug }}">
+    <input class="form-control" name="summary" placeholder="摘要" value="{{ .post.Summary }}">
+    <div class="input-group">
+      <input class="form-control" name="cover_url" id="cover_url" placeholder="封面URL" value="{{ .post.CoverURL }}" readonly>
+      <button class="btn btn-outline-secondary" type="button" id="uploadCover">上传封面</button>
+    </div>
+    <select name="category_id" id="category_id" class="form-select">
+      <option value="">请选择分类</option>
+      {{ range .catOptions }}
+      <option value="{{ .ID }}" {{ if .Selected }}selected{{ end }}>{{ .Label }}</option>
+      {{ end }}
+    </select>
+    <div class="invalid-feedback" id="categoryFeedback">分类为必选项</div>
+    <select name="series_id" class="form-select">
+      <option value="">系列</option>
+      {{ range .seriesOptions }}
+      <option value="{{ .ID }}" {{ if .Selected }}selected{{ end }}>{{ .Name }}</option>
+      {{ end }}
+    </select>
+    <div id="tagContainer">
+      {{ range .tagOptions }}
+      <label class="me-2"><input type="checkbox" name="tag_ids[]" value="{{ .ID }}" {{ if .Checked }}checked{{ end }}> {{ .Name }}</label>
+      {{ end }}
+    </div>
+    <div class="input-group">
+      <input id="newTag" class="form-control" placeholder="新标签">
+      <button class="btn btn-outline-secondary" type="button" id="addTag">添加标签</button>
+    </div>
+    <textarea id="editor" name="content">{{ .post.Content }}</textarea>
+    <select name="status" class="form-select">
+      <option value="draft" {{ if eq .post.Status "draft" }}selected{{ end }}>草稿</option>
+      <option value="published" {{ if eq .post.Status "published" }}selected{{ end }}>发布</option>
+    </select>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="published" name="published" {{ if .post.PublishedAt }}checked{{ end }}>
+      <label class="form-check-label" for="published">设置发布时间</label>
+    </div>
+    <button class="btn btn-primary">保存</button>
+  </form>
+  <div class="mt-3">
+    <h5>上传图片/视频</h5>
+    <input type="file" id="upfile">
+    <button class="btn btn-secondary" id="uploadBtn">上传</button>
+    <div id="uploadMsg" class="mt-2"></div>
+  </div>
+  <div id="cropperModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1050;">
+    <div class="bg-white rounded p-3" style="max-width:900px; width:92%; margin:40px auto;">
+      <h5 class="mb-2">裁剪封面</h5>
+      <div style="max-height:60vh; overflow:auto">
+        <img id="cropperImage" style="max-width:100%; display:block">
+      </div>
+      <div class="mt-3 d-flex gap-2">
+        <button type="button" class="btn btn-primary" id="cropConfirm">确定</button>
+        <button type="button" class="btn btn-secondary" id="cropCancel">取消</button>
+      </div>
+    </div>
+  </div>
+  <img id="cover_preview" class="img-thumbnail mt-3" style="max-width:320px; {{ if .post.CoverURL }}display:block{{ else }}display:none{{ end }}" src="{{ .post.CoverURL }}">
+</main>
+<script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
+<script>
+tinymce.init({
+  selector:'#editor',
+  language:'zh_CN',
+  language_url:'https://cdn.jsdelivr.net/npm/tinymce-lang/langs/zh_CN.js',
+  height: 500,
+  plugins: 'link image media code lists table',
+  toolbar: 'undo redo | styleselect | bold italic | alignleft aligncenter alignright | bullist numlist | link image media | code'
+});
+document.getElementById('uploadBtn').addEventListener('click', async function(){
+  const f = document.getElementById('upfile').files[0];
+  if(!f) return;
+  const fd = new FormData();
+  fd.append('file', f);
+  const res = await fetch('/api/admin/upload', {method:'POST', headers:{Authorization:'Bearer '+localStorage.getItem('token')}, body:fd});
+  if(res.ok){
+    const data = await res.json();
+    document.getElementById('uploadMsg').textContent = data.url;
+  } else {
+    document.getElementById('uploadMsg').textContent = '上传失败';
+  }
+});
+document.getElementById('uploadCover').addEventListener('click', async function(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = async ()=>{
+    const f = input.files[0];
+    if(!f) return;
+    const url = URL.createObjectURL(f);
+    const img = document.getElementById('cropperImage');
+    img.src = url;
+    const modal = document.getElementById('cropperModal');
+    modal.style.display = 'block';
+    let cropper = new Cropper(img, {aspectRatio: 16/9, viewMode:1});
+    const confirm = document.getElementById('cropConfirm');
+    const cancel = document.getElementById('cropCancel');
+    const cleanup = ()=>{ cropper.destroy(); modal.style.display='none'; URL.revokeObjectURL(url); };
+    cancel.onclick = ()=> cleanup();
+    confirm.onclick = async ()=>{
+      const canvas = cropper.getCroppedCanvas({maxWidth: 2000});
+      if(!canvas){ alert('裁剪失败'); return; }
+      canvas.toBlob(async (blob)=>{
+        const fd = new FormData(); fd.append('file', blob, 'cover.png');
+        const res = await fetch('/api/admin/upload', {method:'POST', headers:{Authorization:'Bearer '+localStorage.getItem('token')}, body: fd});
+        if(res.ok){
+          const data = await res.json();
+          document.getElementById('cover_url').value = data.url;
+          const pv = document.getElementById('cover_preview');
+          pv.src = data.url; pv.style.display='block';
+          cleanup();
+        } else {
+          alert('封面上传失败');
+        }
+      }, 'image/png', 0.92);
+    };
+  };
+  input.click();
+});
+document.getElementById('addTag').addEventListener('click', async function(){
+  const name = document.getElementById('newTag').value.trim();
+  if(!name) return;
+  const fd = new FormData(); fd.set('name', name);
+  const res = await fetch('/api/admin/tags', {method:'POST', headers:{Authorization:'Bearer '+localStorage.getItem('token')}, body: fd});
+  if(res.ok){
+    const data = await res.json();
+    const container = document.getElementById('tagContainer');
+    const label = document.createElement('label');
+    label.className = 'me-2';
+    label.innerHTML = `<input type="checkbox" name="tag_ids[]" value="${data.id}" checked> ${name}`;
+    container.appendChild(label);
+    document.getElementById('newTag').value='';
+  }
+});
+// 动态兜底加载分类/系列/标签（当服务端未预填或为空时）
+async function ensureOptions(){
+  const token = localStorage.getItem('token');
+  // 分类
+  const catSel = document.getElementById('category_id');
+  if(catSel && catSel.options.length <= 1){
+    try{
+      const res = await fetch('/api/admin/categories', {headers:{Authorization:'Bearer '+token}});
+      if(res.ok){
+        const data = await res.json();
+        for(const c of data.items||[]){
+          const opt = document.createElement('option');
+          const label = c.Title || c.Name || c.Slug || ('分类#'+c.ID);
+          opt.value = c.ID;
+          opt.textContent = label;
+          catSel.appendChild(opt);
+        }
+      }
+    }catch(e){}
+  }
+  // 系列
+  const serSel = document.querySelector('select[name="series_id"]');
+  if(serSel && serSel.options.length <= 1){
+    try{
+      const res = await fetch('/api/admin/series', {headers:{Authorization:'Bearer '+token}});
+      if(res.ok){
+        const data = await res.json();
+        for(const s of data.items||[]){
+          const opt = document.createElement('option');
+          opt.value = s.ID;
+          opt.textContent = s.Name || ('系列#'+s.ID);
+          serSel.appendChild(opt);
+        }
+      }
+    }catch(e){}
+  }
+  // 标签
+  const tagContainer = document.getElementById('tagContainer');
+  if(tagContainer && tagContainer.querySelectorAll('input[name="tag_ids[]"]').length === 0){
+    try{
+      const res = await fetch('/api/admin/tags', {headers:{Authorization:'Bearer '+token}});
+      if(res.ok){
+        const data = await res.json();
+        for(const t of data.items||[]){
+          const label = document.createElement('label');
+          label.className = 'me-2';
+          label.innerHTML = `<input type="checkbox" name="tag_ids[]" value="${t.ID}"> ${t.Name||('标签#'+t.ID)}`;
+          tagContainer.appendChild(label);
+        }
+      }
+    }catch(e){}
+  }
+}
+ensureOptions();
+document.getElementById('editForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const catSel = document.getElementById('category_id');
+  catSel.classList.remove('is-invalid');
+  document.getElementById('categoryFeedback').style.display = 'none';
+  if(!catSel.value){
+    catSel.classList.add('is-invalid');
+    document.getElementById('categoryFeedback').style.display = 'block';
+    catSel.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  const token = localStorage.getItem('token');
+  const fd = new FormData(this);
+  fd.set('content', tinymce.get('editor').getContent());
+  if(document.getElementById('published').checked){
+    fd.set('published','true');
+  } else {
+    fd.delete('published');
+  }
+  const method = '{{ if .post.ID }}PUT{{ else }}POST{{ end }}';
+  const url = '{{ if .post.ID }}/api/admin/posts/{{ .post.ID }}{{ else }}/api/admin/posts{{ end }}';
+  const res = await fetch(url, {method, headers:{Authorization:'Bearer '+token}, body: fd});
+  if(res.ok){ alert('保存成功'); location.href='/admin/dashboard'; } else { alert('保存失败'); }
+});
+document.getElementById('category_id').addEventListener('change', function(){
+  this.classList.remove('is-invalid');
+  document.getElementById('categoryFeedback').style.display = 'none';
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+{{ end }}

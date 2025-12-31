@@ -1,0 +1,158 @@
+{{ define "public/post.html" }}
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ .post.Title }}</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/styles/github.min.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand" href="/">我的博客</a>
+    <div class="d-flex">
+      <a class="nav-link text-white" href="/archive">归档</a>
+    </div>
+  </div>
+</nav>
+<main class="container py-4">
+  <div class="row">
+    <div class="col-lg-8">
+      <article class="mb-4">
+        <h1>{{ .post.Title }}</h1>
+        <div class="text-muted mb-2">浏览 {{ .post.Views }}</div>
+        {{ if .post.Category }}<div class="mb-2">分类：<a href="/categories/{{ .post.Category.Slug }}">{{ .post.Category.Title }}</a></div>{{ end }}
+        {{ if .post.CoverURL }}<img src="{{ .post.CoverURL }}" class="img-fluid mb-3" alt="">{{ end }}
+        <div class="prose">{{ .htmlContent }}</div>
+        <div class="mt-3">
+          {{ range .post.Tags }}<span class="badge bg-secondary">{{ .Name }}</span> {{ end }}
+        </div>
+      </article>
+      <section>
+        <h3>评论</h3>
+        <form id="cform" class="row g-2">
+          <div class="col-md-6"><input class="form-control" name="author_name" placeholder="昵称"></div>
+          <div class="col-md-6"><input class="form-control" name="author_email" placeholder="邮箱"></div>
+          <div class="col-12"><textarea class="form-control" name="content" placeholder="内容" rows="4"></textarea></div>
+          <div class="col-12"><button class="btn btn-primary">提交</button></div>
+        </form>
+        <p class="text-muted">评论需审核后显示</p>
+        <ul class="list-group mt-3">
+          {{ range .comments }}
+          <li class="list-group-item d-flex align-items-start">
+            <div class="me-3">
+              {{ $seed := .AuthorEmail }}
+              {{ if eq $seed "" }}{{ $seed = .AuthorName }}{{ end }}
+              <img src="https://api.dicebear.com/7.x/identicon/svg?seed={{ $seed }}&size=48" alt="avatar" width="48" height="48" class="rounded-circle border">
+            </div>
+            <div>
+              <div class="fw-bold">{{ .AuthorName }} <span class="text-muted ms-2"><i class="bi bi-clock me-1"></i>{{ .CreatedAt.Format "2006-01-02 15:04:05" }}</span></div>
+              <div><span class="text-muted">评论内容：</span>{{ .Content }}</div>
+            </div>
+          </li>
+          {{ end }}
+        </ul>
+      </section>
+    </div>
+    <aside class="col-lg-4">
+      <div class="card mb-3">
+        <div class="card-header">标签</div>
+        <div class="card-body">
+          {{ range .tags }}
+          <a href="/tags/{{ .Name }}" class="badge bg-info text-dark text-decoration-none me-1 mb-1">{{ .Name }}</a>
+          {{ end }}
+        </div>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header">分类</div>
+        <ul class="list-group list-group-flush">
+          {{ range .categories }}
+          <li class="list-group-item"><a href="/categories/{{ .Slug }}">{{ .Title }}</a></li>
+          {{ end }}
+        </ul>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header">本月日历</div>
+        <div class="card-body" id="calendar"></div>
+      </div>
+      <div class="card mb-3">
+        <div class="card-header">天气</div>
+        <div class="card-body" id="weather">加载中...</div>
+      </div>
+    </aside>
+  </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+<script>
+(function(){
+  try{
+    const dailyCounts = {{ .dailyCountsJSON }};
+    function renderCalendar(el){
+      const d = new Date();
+      const year = d.getFullYear(), month = d.getMonth();
+      const firstDay = new Date(year, month, 1).getDay();
+      const days = new Date(year, month+1, 0).getDate();
+      let html = '<table class="table table-sm"><thead><tr><th colspan="7" class="text-center">'+year+'年'+(month+1)+'月</th></tr><tr><th>日</th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th></tr></thead><tbody><tr>';
+      for(let i=0;i<firstDay;i++) html += '<td></td>';
+      let day=1, dow=firstDay;
+      while(day<=days){
+        const key = year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+        const cnt = dailyCounts[key]||0;
+        const badge = cnt>0?(' <span class="badge bg-info text-dark">'+cnt+'</span>'):'';
+        html += '<td>'+day+badge+'</td>';
+        day++; dow++;
+        if(dow===7 && day<=days){ html += '</tr><tr>'; dow=0; }
+      }
+      html += '</tr></tbody></table>';
+      el.innerHTML = html;
+    }
+    var cal = document.getElementById('calendar'); if(cal){ renderCalendar(cal); }
+    async function loadWeather(){
+      try{
+        const url = 'https://api.open-meteo.com/v1/forecast?latitude=39.9042&longitude=116.4074&current=temperature_2m,weathercode&daily=temperature_2m_max,temperature_2m_min&timezone=auto';
+        const res = await fetch(url);
+        const data = await res.json();
+        const cur = data.current;
+        const daily = data.daily;
+        var w = document.getElementById('weather');
+        if(w){ w.innerHTML = '当前温度：'+cur.temperature_2m+'°C<br>今日最高/最低：'+daily.temperature_2m_max[0]+'°C / '+daily.temperature_2m_min[0]+'°C'; }
+      }catch(e){
+        var w = document.getElementById('weather'); if(w){ w.textContent = '天气服务不可用'; }
+      }
+    }
+    var w = document.getElementById('weather'); if(w){ loadWeather(); }
+  }catch(e){}
+})();
+</script>
+<script>
+document.getElementById('cform').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const fd = new FormData(this);
+  const email = (fd.get('author_email')||'').toString().trim();
+  const content = (fd.get('content')||'').toString().trim();
+  const re = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$/;
+  if(!content){ alert('请填写评论内容'); return; }
+  if(!re.test(email)){ alert('请输入有效的邮箱'); return; }
+  try{
+    const key = 'comment:last:{{ .post.ID }}';
+    const last = parseInt(localStorage.getItem(key)||'0');
+    const now = Date.now();
+    if(last && (now - last) < 10*60*1000){ alert('同一IP对同一文章10分钟内只能评论一次'); return; }
+    const res = await fetch('/post/{{ .post.ID }}/comments', {method:'POST', body:fd});
+    if(res.ok){ localStorage.setItem(key, String(now)); alert('提交成功，待审核'); this.reset(); }
+    else {
+      const data = await res.json().catch(()=>({}));
+      alert((data && data.error) ? data.error : '提交失败');
+    }
+  }catch(e){
+    alert('提交失败');
+  }
+});
+</script>
+</body>
+</html>
+{{ end }}
