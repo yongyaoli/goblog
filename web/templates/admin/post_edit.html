@@ -39,9 +39,12 @@
     <input class="form-control" name="title" placeholder="标题" value="{{ .post.Title }}">
     <input class="form-control" name="slug" placeholder="Slug" value="{{ .post.Slug }}">
     <input class="form-control" name="summary" placeholder="摘要" value="{{ .post.Summary }}">
-    <div class="input-group">
+    <div class="input-group align-items-center">
       <input class="form-control" name="cover_url" id="cover_url" placeholder="封面URL" value="{{ .post.CoverURL }}" readonly>
       <button class="btn btn-outline-secondary" type="button" id="uploadCover">上传封面</button>
+      <span class="input-group-text p-0 ms-2" id="coverThumbWrap" style="display: {{ if .post.CoverURL }}inline-block{{ else }}none{{ end }};">
+        <img id="cover_thumb" src="{{ .post.CoverURL }}" alt="封面" style="width:56px;height:56px;object-fit:cover;cursor:pointer;border-radius:.25rem;">
+      </span>
     </div>
     <select name="category_id" id="category_id" class="form-select">
       <option value="">请选择分类</option>
@@ -74,14 +77,16 @@
       <input class="form-check-input" type="checkbox" id="published" name="published" {{ if .post.PublishedAt }}checked{{ end }}>
       <label class="form-check-label" for="published">设置发布时间</label>
     </div>
+    <div class="mt-2">
+      <h6 class="mb-2">上传图片/视频</h6>
+      <div class="d-flex align-items-center gap-2">
+        <input type="file" id="upfile">
+        <button class="btn btn-secondary" id="uploadBtn" type="button">上传</button>
+      </div>
+      <div id="uploadMsg" class="mt-2 text-muted"></div>
+    </div>
     <button class="btn btn-primary">保存</button>
   </form>
-  <div class="mt-3">
-    <h5>上传图片/视频</h5>
-    <input type="file" id="upfile">
-    <button class="btn btn-secondary" id="uploadBtn">上传</button>
-    <div id="uploadMsg" class="mt-2"></div>
-  </div>
   <div id="cropperModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1050;">
     <div class="bg-white rounded p-3" style="max-width:900px; width:92%; margin:40px auto;">
       <h5 class="mb-2">裁剪封面</h5>
@@ -94,7 +99,15 @@
       </div>
     </div>
   </div>
-  <img id="cover_preview" class="img-thumbnail mt-3" style="max-width:320px; {{ if .post.CoverURL }}display:block{{ else }}display:none{{ end }}" src="{{ .post.CoverURL }}">
+  <div class="modal fade" id="imgPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-body p-0">
+          <img id="imgPreview" src="" style="width:100%;height:auto;display:block">
+        </div>
+      </div>
+    </div>
+  </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
 <script>
@@ -145,8 +158,9 @@ document.getElementById('uploadCover').addEventListener('click', async function(
         if(res.ok){
           const data = await res.json();
           document.getElementById('cover_url').value = data.url;
-          const pv = document.getElementById('cover_preview');
-          pv.src = data.url; pv.style.display='block';
+          const wrap = document.getElementById('coverThumbWrap');
+          const thumb = document.getElementById('cover_thumb');
+          thumb.src = data.url; wrap.style.display='inline-block';
           cleanup();
         } else {
           alert('封面上传失败');
@@ -155,6 +169,22 @@ document.getElementById('uploadCover').addEventListener('click', async function(
     };
   };
   input.click();
+});
+document.addEventListener('DOMContentLoaded', function(){
+  var wrap = document.getElementById('coverThumbWrap');
+  var thumb = document.getElementById('cover_thumb');
+  var val = document.getElementById('cover_url').value;
+  if(val){ if(thumb){ thumb.src = val; } if(wrap){ wrap.style.display = 'inline-block'; } }
+  if(thumb){
+    thumb.addEventListener('click', function(){
+      var url = document.getElementById('cover_url').value;
+      if(!url) return;
+      var img = document.getElementById('imgPreview');
+      img.src = url;
+      var modal = new bootstrap.Modal(document.getElementById('imgPreviewModal'));
+      modal.show();
+    });
+  }
 });
 document.getElementById('addTag').addEventListener('click', async function(){
   const name = document.getElementById('newTag').value.trim();
