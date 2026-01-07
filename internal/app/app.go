@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	docs "goblog/docs"
 	"goblog/internal/config"
 	"goblog/internal/db"
 	"goblog/internal/handlers"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func Run(port int) error {
@@ -32,12 +35,14 @@ func Run(port int) error {
 	}
 	r := gin.Default()
 	r.Use(middleware.CORS(), middleware.AccessLog())
+	docs.SwaggerInfo.BasePath = "/"
 	staticDir := filepath.Join("web", "static")
 	templatesDir := filepath.Join("web", "templates")
 	_ = os.MkdirAll(staticDir, 0755)
 	_ = os.MkdirAll(templatesDir, 0755)
 	r.Use(static.Serve("/static", static.LocalFile(staticDir, true)))
 	r.LoadHTMLGlob(filepath.Join(templatesDir, "*", "*.html"))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	pub := handlers.NewPublic()
 	admin := handlers.NewAdmin(secret)
 	r.GET("/", pub.Index)

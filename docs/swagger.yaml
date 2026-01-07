@@ -1,0 +1,797 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: GoBlog 管理后台与前台 API 文档
+  title: GoBlog API
+  version: "1.0"
+paths:
+  /api/admin/attachments:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 附件列表
+      tags:
+      - admin
+  /api/admin/attachments/{id}:
+    delete:
+      parameters:
+      - description: 附件ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 删除附件
+      tags:
+      - admin
+  /api/admin/audit:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 审计日志列表
+      tags:
+      - admin
+  /api/admin/categories:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 分类列表
+      tags:
+      - admin
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 分类标题
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: 分类Slug
+        in: formData
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 创建分类
+      tags:
+      - admin
+  /api/admin/categories/{id}:
+    delete:
+      parameters:
+      - description: 分类ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 删除分类
+      tags:
+      - admin
+  /api/admin/comments:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 评论列表
+      tags:
+      - admin
+  /api/admin/comments/{id}:
+    delete:
+      parameters:
+      - description: 评论ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 删除评论
+      tags:
+      - admin
+  /api/admin/comments/{id}/approve:
+    put:
+      parameters:
+      - description: 评论ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 审核评论
+      tags:
+      - admin
+  /api/admin/login:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 返回 JWT token
+      parameters:
+      - description: 用户名
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: 密码
+        in: formData
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 管理员登录
+      tags:
+      - admin
+  /api/admin/me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 当前管理员信息
+      tags:
+      - admin
+  /api/admin/menus:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 菜单列表
+      tags:
+      - admin
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 菜单名
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: 链接地址
+        in: formData
+        name: path
+        type: string
+      - description: 图标
+        in: formData
+        name: icon
+        type: string
+      - description: 排序
+        in: formData
+        name: order
+        type: integer
+      - description: 父级ID
+        in: formData
+        name: parent_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 创建菜单
+      tags:
+      - admin
+  /api/admin/menus/{id}:
+    delete:
+      parameters:
+      - description: 菜单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 删除菜单
+      tags:
+      - admin
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 菜单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 菜单名
+        in: formData
+        name: title
+        type: string
+      - description: 链接地址
+        in: formData
+        name: path
+        type: string
+      - description: 图标
+        in: formData
+        name: icon
+        type: string
+      - description: 排序
+        in: formData
+        name: order
+        type: integer
+      - description: 父级ID
+        in: formData
+        name: parent_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 更新菜单
+      tags:
+      - admin
+  /api/admin/posts:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 后台文章列表
+      tags:
+      - admin
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 标题
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Slug
+        in: formData
+        name: slug
+        required: true
+        type: string
+      - description: 摘要
+        in: formData
+        name: summary
+        type: string
+      - description: 内容
+        in: formData
+        name: content
+        type: string
+      - description: 封面URL
+        in: formData
+        name: cover_url
+        type: string
+      - description: 状态
+        in: formData
+        name: status
+        type: string
+      - description: 分类ID
+        in: formData
+        name: category_id
+        required: true
+        type: integer
+      - description: 系列ID
+        in: formData
+        name: series_id
+        type: integer
+      - collectionFormat: csv
+        description: 标签ID数组
+        in: formData
+        items:
+          type: integer
+        name: tag_ids[]
+        type: array
+      - description: 发布标记
+        in: formData
+        name: published
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 创建文章
+      tags:
+      - admin
+  /api/admin/posts/{id}:
+    delete:
+      parameters:
+      - description: 文章ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 删除文章
+      tags:
+      - admin
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 文章ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 标题
+        in: formData
+        name: title
+        required: true
+        type: string
+      - description: Slug
+        in: formData
+        name: slug
+        required: true
+        type: string
+      - description: 摘要
+        in: formData
+        name: summary
+        type: string
+      - description: 内容
+        in: formData
+        name: content
+        type: string
+      - description: 封面URL
+        in: formData
+        name: cover_url
+        type: string
+      - description: 状态
+        in: formData
+        name: status
+        type: string
+      - description: 分类ID
+        in: formData
+        name: category_id
+        required: true
+        type: integer
+      - description: 系列ID
+        in: formData
+        name: series_id
+        type: integer
+      - collectionFormat: csv
+        description: 标签ID数组
+        in: formData
+        items:
+          type: integer
+        name: tag_ids[]
+        type: array
+      - description: 发布标记
+        in: formData
+        name: published
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 更新文章
+      tags:
+      - admin
+  /api/admin/redis/info:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Redis 基本信息与键列表
+      tags:
+      - admin
+  /api/admin/series:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 系列列表
+      tags:
+      - admin
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 系列名称
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: 系列描述
+        in: formData
+        name: description
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 创建系列
+      tags:
+      - admin
+  /api/admin/series/{id}:
+    delete:
+      parameters:
+      - description: 系列ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 删除系列
+      tags:
+      - admin
+  /api/admin/tags:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 标签列表
+      tags:
+      - admin
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 标签名
+        in: formData
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 创建标签
+      tags:
+      - admin
+  /api/admin/tags/{id}:
+    delete:
+      parameters:
+      - description: 标签ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 删除标签
+      tags:
+      - admin
+  /api/admin/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: 文件
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 上传附件
+      tags:
+      - admin
+  /api/admin/views:
+    get:
+      parameters:
+      - description: 页码
+        in: query
+        name: page
+        type: integer
+      - description: 每页数量
+        in: query
+        name: size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: 访问日志列表
+      tags:
+      - admin
+securityDefinitions:
+  Bearer:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

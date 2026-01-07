@@ -1,0 +1,2 @@
+{"ts":"2026-01-07T10:45:00+08:00","level":"ERROR","msg":"mysql_init_error","err":"dial tcp 127.0.0.1:3306: connectex: No connection could be made because the target machine actively refused it."}
+{"ts":"2026-01-07T10:45:00+08:00","level":"ERROR","msg":"db_init_error","err":"dial tcp 127.0.0.1:3306: connectex: No connection could be made because the target machine actively refused it."}
