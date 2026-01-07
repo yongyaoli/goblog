@@ -4,7 +4,7 @@ mysql:
   dsn: "root:root@tcp(127.0.0.1:3306)/gocms?charset=utf8mb4&parseTime=True&loc=Local"
 redis:
   addr: "127.0.0.1:6379"
-  password: "Pass!"
+  password: "123"
   db: 0
 jwt:
   secret: "please-change-this-secret"
