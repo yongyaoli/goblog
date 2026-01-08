@@ -152,12 +152,33 @@ func (a *Admin) MenusPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin/menus.html", gin.H{"active": "menus", "menus": getMenuTree(), "path": c.Request.URL.Path})
 }
 
+func (a *Admin) SettingsPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "admin/settings.html", gin.H{"active": "settings", "menus": getMenuTree(), "path": c.Request.URL.Path})
+}
+
+func (a *Admin) LinksPage(c *gin.Context) {
+	c.HTML(http.StatusOK, "admin/links.html", gin.H{"active": "links", "menus": getMenuTree(), "path": c.Request.URL.Path})
+}
+
 type menuReq struct {
 	Title    string `form:"title" json:"title"`
 	Path     string `form:"path" json:"path"`
 	Icon     string `form:"icon" json:"icon"`
 	Order    int    `form:"order" json:"order"`
 	ParentID *uint  `form:"parent_id" json:"parent_id"`
+}
+
+type linkReq struct {
+	Name   string `form:"name" json:"name"`
+	URL    string `form:"url" json:"url"`
+	Active bool   `form:"active" json:"active"`
+	Order  int    `form:"order" json:"order"`
+}
+
+type siteConfigReq struct {
+	SiteTitle     string `form:"site_title" json:"site_title"`
+	SiteICP       string `form:"site_icp" json:"site_icp"`
+	SiteCopyright string `form:"site_copyright" json:"site_copyright"`
 }
 
 // @Summary 菜单列表
@@ -281,6 +302,120 @@ func (a *Admin) DeleteMenu(c *gin.Context) {
 		logger.Error("delete_menu_db_error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "数据库错误"})
 		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func (a *Admin) ListLinks(c *gin.Context) {
+	page := 1
+	size := 50
+	if v := c.Query("page"); v != "" {
+		if p, err := strconv.Atoi(v); err == nil && p > 0 {
+			page = p
+		}
+	}
+	if v := c.Query("size"); v != "" {
+		if s, err := strconv.Atoi(v); err == nil && s > 0 && s <= 200 {
+			size = s
+		}
+	}
+	var total int64
+	db.SQL.Model(&db.FriendLink{}).Count(&total)
+	var items []db.FriendLink
+	db.SQL.Order("`order` asc, id asc").Limit(size).Offset((page - 1) * size).Find(&items)
+	pages := int((total + int64(size) - 1) / int64(size))
+	if pages == 0 {
+		pages = 1
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items, "page": page, "pages": pages, "size": size, "total": total})
+}
+
+func (a *Admin) CreateLink(c *gin.Context) {
+	var req linkReq
+	_ = c.ShouldBind(&req)
+	name := strings.TrimSpace(req.Name)
+	url := strings.TrimSpace(req.URL)
+	if name == "" || url == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "名称和地址必填"})
+		return
+	}
+	item := db.FriendLink{Name: name, URL: url, Active: req.Active, Order: req.Order}
+	if err := db.SQL.Create(&item).Error; err != nil {
+		logger.Error("create_link_db_error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "数据库错误"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"id": item.ID})
+}
+
+func (a *Admin) UpdateLink(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.Atoi(idStr)
+	var req linkReq
+	_ = c.ShouldBind(&req)
+	var item db.FriendLink
+	if err := db.SQL.First(&item, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到链接"})
+		return
+	}
+	if strings.TrimSpace(req.Name) != "" {
+		item.Name = strings.TrimSpace(req.Name)
+	}
+	if strings.TrimSpace(req.URL) != "" {
+		item.URL = strings.TrimSpace(req.URL)
+	}
+	item.Active = req.Active
+	item.Order = req.Order
+	if err := db.SQL.Save(&item).Error; err != nil {
+		logger.Error("update_link_db_error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "数据库错误"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func (a *Admin) DeleteLink(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.Atoi(idStr)
+	if err := db.SQL.Delete(&db.FriendLink{}, id).Error; err != nil {
+		logger.Error("delete_link_db_error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "数据库错误"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func (a *Admin) GetSiteConfig(c *gin.Context) {
+	var items []db.SiteConfig
+	keys := []string{"site_title", "site_icp", "site_copyright"}
+	db.SQL.Where("`key` IN ?", keys).Find(&items)
+	out := map[string]string{}
+	for _, it := range items {
+		out[it.Key] = it.Value
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"site_title":     out["site_title"],
+		"site_icp":       out["site_icp"],
+		"site_copyright": out["site_copyright"],
+	})
+}
+
+func (a *Admin) SaveSiteConfig(c *gin.Context) {
+	var req siteConfigReq
+	_ = c.ShouldBind(&req)
+	values := map[string]string{
+		"site_title":     strings.TrimSpace(req.SiteTitle),
+		"site_icp":       strings.TrimSpace(req.SiteICP),
+		"site_copyright": strings.TrimSpace(req.SiteCopyright),
+	}
+	for k, v := range values {
+		var item db.SiteConfig
+		err := db.SQL.Where("`key` = ?", k).Assign(db.SiteConfig{Key: k, Value: v}).FirstOrCreate(&item).Error
+		if err != nil {
+			logger.Error("save_site_config_db_error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "数据库错误"})
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

@@ -66,6 +66,8 @@ func Run(port int) error {
 	r.GET("/admin/attachment", admin.AttachmentsPage)
 	r.GET("/admin/menus", admin.MenusPage)
 	r.GET("/admin/redis", admin.RedisPage)
+	r.GET("/admin/links", admin.LinksPage)
+	r.GET("/admin/settings", admin.SettingsPage)
 	r.GET("/rss.xml", pub.RSS)
 	r.GET("/sitemap.xml", pub.Sitemap)
 	api := r.Group("/api")
@@ -98,6 +100,12 @@ func Run(port int) error {
 	api.PUT("/admin/menus/:id", admin.UpdateMenu)
 	api.DELETE("/admin/menus/:id", admin.DeleteMenu)
 	api.GET("/admin/redis/info", admin.RedisInfo)
+	api.GET("/admin/links", admin.ListLinks)
+	api.POST("/admin/links", admin.CreateLink)
+	api.PUT("/admin/links/:id", admin.UpdateLink)
+	api.DELETE("/admin/links/:id", admin.DeleteLink)
+	api.GET("/admin/site-config", admin.GetSiteConfig)
+	api.POST("/admin/site-config", admin.SaveSiteConfig)
 	if cfg.Server.Port != 0 {
 		port = cfg.Server.Port
 	}

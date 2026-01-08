@@ -21,6 +21,38 @@ type Public struct{}
 
 func NewPublic() *Public { return &Public{} }
 
+type siteMeta struct {
+	Title     string
+	ICP       string
+	Copyright string
+}
+
+func loadSiteMeta() siteMeta {
+	m := siteMeta{Title: "我的博客"}
+	var items []db.SiteConfig
+	keys := []string{"site_title", "site_icp", "site_copyright"}
+	db.SQL.Where("`key` IN ?", keys).Find(&items)
+	for _, it := range items {
+		switch it.Key {
+		case "site_title":
+			if it.Value != "" {
+				m.Title = it.Value
+			}
+		case "site_icp":
+			m.ICP = it.Value
+		case "site_copyright":
+			m.Copyright = it.Value
+		}
+	}
+	return m
+}
+
+func getActiveFriendLinks() []db.FriendLink {
+	var links []db.FriendLink
+	db.SQL.Where("active = ?", true).Order("`order` asc, id asc").Find(&links)
+	return links
+}
+
 func monthDailyCountsJSON() template.JS {
 	now := time.Now()
 	start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
@@ -61,6 +93,8 @@ func (h *Public) Index(c *gin.Context) {
 	var total int64
 	db.SQL.Model(&db.Post{}).Where("status = ?", "published").Count(&total)
 	var posts []db.Post
+	meta := loadSiteMeta()
+	links := getActiveFriendLinks()
 	db.SQL.Preload("Tags").Preload("Category").
 		Where("status = ?", "published").
 		Order("published_at desc").
@@ -92,6 +126,10 @@ func (h *Public) Index(c *gin.Context) {
 		"size":            size,
 		"total":           total,
 		"dailyCountsJSON": monthDailyCountsJSON(),
+		"siteTitle":       meta.Title,
+		"siteICP":         meta.ICP,
+		"siteCopyright":   meta.Copyright,
+		"friendLinks":     links,
 	})
 }
 
@@ -113,6 +151,8 @@ func (h *Public) Post(c *gin.Context) {
 	db.SQL.Where("post_id = ? AND approved = ?", p.ID, true).Order("created_at asc").Find(&comments)
 	var categories []db.Category
 	var tags []db.Tag
+	meta := loadSiteMeta()
+	links := getActiveFriendLinks()
 	db.SQL.Order("title asc").Find(&categories)
 	db.SQL.Order("name asc").Find(&tags)
 	c.HTML(http.StatusOK, "public/post.html", gin.H{
@@ -122,6 +162,10 @@ func (h *Public) Post(c *gin.Context) {
 		"categories":      categories,
 		"tags":            tags,
 		"dailyCountsJSON": monthDailyCountsJSON(),
+		"siteTitle":       meta.Title,
+		"siteICP":         meta.ICP,
+		"siteCopyright":   meta.Copyright,
+		"friendLinks":     links,
 	})
 }
 
@@ -200,6 +244,8 @@ func (h *Public) Archive(c *gin.Context) {
 		Month string
 	}
 	var items []Item
+	meta := loadSiteMeta()
+	links := getActiveFriendLinks()
 	db.SQL.Model(&db.Post{}).
 		Select("id, title, slug, date_format(published_at, '%Y-%m') as month").
 		Where("status = ? AND published_at IS NOT NULL", "published").
@@ -213,6 +259,10 @@ func (h *Public) Archive(c *gin.Context) {
 		"categories":      categories,
 		"tags":            tags,
 		"dailyCountsJSON": monthDailyCountsJSON(),
+		"siteTitle":       meta.Title,
+		"siteICP":         meta.ICP,
+		"siteCopyright":   meta.Copyright,
+		"friendLinks":     links,
 	})
 }
 
@@ -228,6 +278,8 @@ func (h *Public) Series(c *gin.Context) {
 	db.SQL.Where("series_id = ? AND status = ?", s.ID, "published").Order("published_at desc").Find(&posts)
 	var categories []db.Category
 	var tags []db.Tag
+	meta := loadSiteMeta()
+	links := getActiveFriendLinks()
 	db.SQL.Order("title asc").Find(&categories)
 	db.SQL.Order("name asc").Find(&tags)
 	c.HTML(http.StatusOK, "public/series.html", gin.H{
@@ -236,6 +288,10 @@ func (h *Public) Series(c *gin.Context) {
 		"categories":      categories,
 		"tags":            tags,
 		"dailyCountsJSON": monthDailyCountsJSON(),
+		"siteTitle":       meta.Title,
+		"siteICP":         meta.ICP,
+		"siteCopyright":   meta.Copyright,
+		"friendLinks":     links,
 	})
 }
 
@@ -264,6 +320,8 @@ func (h *Public) TagPosts(c *gin.Context) {
 		Where("pt.tag_id = ? AND post.status = ?", tag.ID, "published").
 		Count(&total)
 	var posts []db.Post
+	meta := loadSiteMeta()
+	links := getActiveFriendLinks()
 	db.SQL.Preload("Category").
 		Joins("JOIN post_tag pt ON pt.post_id = post.id").
 		Where("pt.tag_id = ? AND post.status = ?", tag.ID, "published").
@@ -299,6 +357,10 @@ func (h *Public) TagPosts(c *gin.Context) {
 		"categories":      categories,
 		"tags":            tags,
 		"dailyCountsJSON": monthDailyCountsJSON(),
+		"siteTitle":       meta.Title,
+		"siteICP":         meta.ICP,
+		"siteCopyright":   meta.Copyright,
+		"friendLinks":     links,
 	})
 }
 
@@ -313,6 +375,8 @@ func (h *Public) CategoryPosts(c *gin.Context) {
 	db.SQL.Where("category_id = ? AND status = ?", cat.ID, "published").Order("published_at desc").Find(&posts)
 	var categories []db.Category
 	var tags []db.Tag
+	meta := loadSiteMeta()
+	links := getActiveFriendLinks()
 	db.SQL.Order("title asc").Find(&categories)
 	db.SQL.Order("name asc").Find(&tags)
 	c.HTML(http.StatusOK, "public/category.html", gin.H{
@@ -321,6 +385,10 @@ func (h *Public) CategoryPosts(c *gin.Context) {
 		"categories":      categories,
 		"tags":            tags,
 		"dailyCountsJSON": monthDailyCountsJSON(),
+		"siteTitle":       meta.Title,
+		"siteICP":         meta.ICP,
+		"siteCopyright":   meta.Copyright,
+		"friendLinks":     links,
 	})
 }
 
