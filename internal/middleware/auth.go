@@ -26,3 +26,23 @@ func AuthRequired(secret string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func AdminPageAuth(secret string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		tokenStr, err := c.Cookie("admin_token")
+		if err != nil || tokenStr == "" {
+			c.Redirect(http.StatusFound, "/admin")
+			c.Abort()
+			return
+		}
+		_, err = jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+			return []byte(secret), nil
+		})
+		if err != nil {
+			c.Redirect(http.StatusFound, "/admin")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}

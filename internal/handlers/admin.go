@@ -152,7 +152,7 @@ func (a *Admin) MenusPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin/menus.html", gin.H{"active": "menus", "menus": getMenuTree(), "path": c.Request.URL.Path})
 }
 
-func (a *Admin) SettingsPage(c *gin.Context) {
+ func (a *Admin) SettingsPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin/settings.html", gin.H{"active": "settings", "menus": getMenuTree(), "path": c.Request.URL.Path})
 }
 
@@ -600,7 +600,13 @@ func (a *Admin) Login(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	s, _ := token.SignedString([]byte(a.secret))
 	audit.Write(c, "login_success", "auth", nil, map[string]interface{}{"username": u.Username})
+	c.SetCookie("admin_token", s, 86400, "/", "", false, true)
 	c.JSON(http.StatusOK, gin.H{"token": s})
+}
+
+func (a *Admin) Logout(c *gin.Context) {
+	c.SetCookie("admin_token", "", -1, "/", "", false, true)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 // @Summary 当前管理员信息

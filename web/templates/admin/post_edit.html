@@ -13,27 +13,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.3/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container">
-    <a class="navbar-brand" href="/admin/dashboard">后台管理</a>
-    <ul class="navbar-nav ms-auto">
-      {{ range .menus }}
-        {{ if .Children }}
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">{{ if .Icon }}<i class="{{ .Icon }} me-1"></i>{{ end }}{{ .Title }}</a>
-          <ul class="dropdown-menu">
-            {{ range .Children }}
-            <li><a class="dropdown-item {{ if eq $.path .Path }}active{{ end }}" href="{{ .Path }}">{{ .Title }}</a></li>
-            {{ end }}
-          </ul>
-        </li>
-        {{ else }}
-        <li class="nav-item"><a class="nav-link {{ if eq $.path .Path }}active{{ end }}" href="{{ .Path }}">{{ if .Icon }}<i class="{{ .Icon }} me-1"></i>{{ end }}{{ .Title }}</a></li>
-        {{ end }}
-      {{ end }}
-    </ul>
-  </div>
-</nav>
+{{ template "admin/navbar" . }}
 <main class="container py-4">
   <form id="editForm" class="vstack gap-2">
     <input class="form-control" name="title" placeholder="标题" value="{{ .post.Title }}">
@@ -111,6 +91,19 @@
 </main>
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
 <script>
+;(function(){
+  const btn = document.getElementById('logoutBtn');
+  if(btn){
+    btn.onclick = async function(){
+      const token = localStorage.getItem('token');
+      try{
+        await fetch('/api/admin/logout', {method:'POST', headers: token ? {Authorization:'Bearer '+token} : {}});
+      }catch(e){}
+      localStorage.removeItem('token');
+      location.href = '/admin';
+    };
+  }
+})();
 tinymce.init({
   selector:'#editor',
   language:'zh_CN',
