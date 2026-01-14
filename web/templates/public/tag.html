@@ -10,7 +10,7 @@
 <body class="d-flex flex-column min-vh-100">
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
-    <a class="navbar-brand" href="/">我的博客</a>
+    <a class="navbar-brand" href="/">{{ if .siteTitle }}{{ .siteTitle }}{{ else }}我的博客{{ end }}</a>
     <div class="d-flex">
       <a class="nav-link text-white" href="/archive">归档</a>
     </div>
@@ -77,9 +77,28 @@
   </div>
 </main>
 <footer class="bg-dark text-white py-3 mt-auto">
-  <div class="container d-flex justify-content-between">
-    <div>© <span id="year"></span> 我的博客</div>
-    <div id="time"></div>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8">
+        {{ if .friendLinks }}
+        <div class="mb-2">
+          <span class="me-2">友情链接：</span>
+          {{ range .friendLinks }}
+          <a href="{{ .URL }}" class="link-light me-2" target="_blank" rel="noopener">{{ .Name }}</a>
+          {{ end }}
+        </div>
+        {{ end }}
+        <div>
+          © <span id="year"></span>
+          {{ if .siteTitle }} {{ .siteTitle }}{{ else }} 我的博客{{ end }}
+          {{ if .siteCopyright }} {{ .siteCopyright }}{{ end }}
+          {{ if .siteICP }} | {{ .siteICP }}{{ end }}
+        </div>
+      </div>
+      <div class="col-md-4 text-md-end mt-2 mt-md-0">
+        <div id="time"></div>
+      </div>
+    </div>
   </div>
 </footer>
  <script>

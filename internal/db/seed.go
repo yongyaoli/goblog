@@ -42,6 +42,8 @@ func seedMenus() error {
 		{Title: "资源管理", Path: "/admin/attachments", Icon: "bi bi-file-earmark-image", Order: 9, Active: true},
 		{Title: "菜单管理", Path: "/admin/menus", Icon: "bi bi-list", Order: 10, Active: true},
 		{Title: "Redis 监控", Path: "/admin/redis", Icon: "bi bi-database", Order: 11, Active: true},
+		{Title: "友情链接", Path: "/admin/links", Icon: "bi bi-link-45deg", Order: 12, Active: true},
+		{Title: "站点配置", Path: "/admin/settings", Icon: "bi bi-gear", Order: 13, Active: true},
 	}
 	for i := range items {
 		if err := SQL.Create(&items[i]).Error; err != nil {

@@ -48,6 +48,7 @@ cp config/config.example.yaml config/config.yaml
   - 创建 MySQL 数据库：`CREATE DATABASE goblog CHARACTER SET utf8mb4;`
   - 准备 `config/config.yaml` 并执行：`go run .`
   - 访问前台：`http://localhost:8080/`；后台登录：`/admin`
+  - Swagger 文档：`http://localhost:8080/swagger/index.html`
 - 服务器部署（宝塔）：
   - 构建二进制：`GOOS=linux GOARCH=amd64 go build -o goblog`
   - 上传二进制与 web/、config/ 目录到服务器

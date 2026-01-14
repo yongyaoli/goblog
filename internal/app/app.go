@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	docs "goblog/docs"
 	"goblog/internal/config"
 	"goblog/internal/db"
 	"goblog/internal/handlers"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func Run(port int) error {
@@ -32,12 +35,14 @@ func Run(port int) error {
 	}
 	r := gin.Default()
 	r.Use(middleware.CORS(), middleware.AccessLog())
+	docs.SwaggerInfo.BasePath = "/"
 	staticDir := filepath.Join("web", "static")
 	templatesDir := filepath.Join("web", "templates")
 	_ = os.MkdirAll(staticDir, 0755)
 	_ = os.MkdirAll(templatesDir, 0755)
 	r.Use(static.Serve("/static", static.LocalFile(staticDir, true)))
 	r.LoadHTMLGlob(filepath.Join(templatesDir, "*", "*.html"))
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	pub := handlers.NewPublic()
 	admin := handlers.NewAdmin(secret)
 	r.GET("/", pub.Index)
@@ -61,6 +66,8 @@ func Run(port int) error {
 	r.GET("/admin/attachment", admin.AttachmentsPage)
 	r.GET("/admin/menus", admin.MenusPage)
 	r.GET("/admin/redis", admin.RedisPage)
+	r.GET("/admin/links", admin.LinksPage)
+	r.GET("/admin/settings", admin.SettingsPage)
 	r.GET("/rss.xml", pub.RSS)
 	r.GET("/sitemap.xml", pub.Sitemap)
 	api := r.Group("/api")
@@ -93,6 +100,12 @@ func Run(port int) error {
 	api.PUT("/admin/menus/:id", admin.UpdateMenu)
 	api.DELETE("/admin/menus/:id", admin.DeleteMenu)
 	api.GET("/admin/redis/info", admin.RedisInfo)
+	api.GET("/admin/links", admin.ListLinks)
+	api.POST("/admin/links", admin.CreateLink)
+	api.PUT("/admin/links/:id", admin.UpdateLink)
+	api.DELETE("/admin/links/:id", admin.DeleteLink)
+	api.GET("/admin/site-config", admin.GetSiteConfig)
+	api.POST("/admin/site-config", admin.SaveSiteConfig)
 	if cfg.Server.Port != 0 {
 		port = cfg.Server.Port
 	}

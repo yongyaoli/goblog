@@ -1,0 +1,145 @@
+{{ define "admin/links.html" }}
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>友情链接管理</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand" href="/admin/dashboard">后台管理</a>
+    <ul class="navbar-nav ms-auto">
+      {{ range .menus }}
+        {{ if .Children }}
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">{{ if .Icon }}<i class="{{ .Icon }} me-1"></i>{{ end }}{{ .Title }}</a>
+          <ul class="dropdown-menu">
+            {{ range .Children }}
+            <li><a class="dropdown-item {{ if eq $.path .Path }}active{{ end }}" href="{{ .Path }}">{{ .Title }}</a></li>
+            {{ end }}
+          </ul>
+        </li>
+        {{ else }}
+        <li class="nav-item"><a class="nav-link {{ if eq $.path .Path }}active{{ end }}" href="{{ .Path }}">{{ if .Icon }}<i class="{{ .Icon }} me-1"></i>{{ end }}{{ .Title }}</a></li>
+        {{ end }}
+      {{ end }}
+    </ul>
+  </div>
+</nav>
+<main class="container py-4">
+  <h3>友情链接管理</h3>
+  <div class="row g-2 mb-3">
+    <div class="col"><input id="name" class="form-control" placeholder="名称"></div>
+    <div class="col"><input id="url" class="form-control" placeholder="http 地址"></div>
+    <div class="col-auto d-flex align-items-center">
+      <div class="form-check mt-2">
+        <input class="form-check-input" type="checkbox" id="active">
+        <label class="form-check-label" for="active">启用</label>
+      </div>
+    </div>
+    <div class="col"><input id="order" class="form-control" type="number" value="0" placeholder="排序"></div>
+    <div class="col-auto"><button class="btn btn-primary" id="save">保存</button></div>
+    <input type="hidden" id="editing_id" value="">
+  </div>
+  <table class="table">
+    <thead><tr><th>ID</th><th>名称</th><th>地址</th><th>状态</th><th>排序</th><th>操作</th></tr></thead>
+    <tbody id="list"></tbody>
+  </table>
+</main>
+<script>
+const token = localStorage.getItem('token');
+let editingId = null;
+async function loadLinks(){
+  const res = await fetch('/api/admin/links', {headers:{Authorization:'Bearer '+token}});
+  const data = await res.json();
+  const tbody = document.getElementById('list');
+  tbody.innerHTML = '';
+  for(const it of data.items){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${it.ID}</td><td>${it.Name}</td><td>${it.URL}</td><td>${it.Active?'启用':'停用'}</td><td>${it.Order||0}</td>
+    <td>
+      <button class="btn btn-sm btn-secondary me-2" data-edit="${it.ID}">编辑</button>
+      <button class="btn btn-sm btn-danger" data-del="${it.ID}">删除</button>
+    </td>`;
+    tbody.appendChild(tr);
+  }
+}
+document.getElementById('save').onclick = async ()=>{
+  const nameEl = document.getElementById('name');
+  const urlEl = document.getElementById('url');
+  const activeEl = document.getElementById('active');
+  const orderEl = document.getElementById('order');
+  const name = nameEl.value.trim();
+  const url = urlEl.value.trim();
+  if(!name || !url){
+    alert('请填写名称和地址');
+    return;
+  }
+  const fd = new FormData();
+  fd.set('name', name);
+  fd.set('url', url);
+  fd.set('order', orderEl.value.trim()||'0');
+  fd.set('active', activeEl.checked ? 'true' : 'false');
+  let resp;
+  if(editingId){
+    resp = await fetch('/api/admin/links/'+editingId, {method:'PUT', headers:{Authorization:'Bearer '+token}, body:fd});
+  }else{
+    resp = await fetch('/api/admin/links', {method:'POST', headers:{Authorization:'Bearer '+token}, body:fd});
+  }
+  if(!resp.ok){
+    const data = await resp.json().catch(()=>({}));
+    alert(data && data.error ? data.error : '保存失败');
+    return;
+  }
+  editingId = null;
+  document.getElementById('editing_id').value = '';
+  nameEl.value = '';
+  urlEl.value = '';
+  activeEl.checked = true;
+  orderEl.value = '0';
+  loadLinks();
+};
+document.addEventListener('click', async (e)=>{
+  const t = e.target;
+  if(!t || !t.dataset) return;
+  if(t.dataset.edit){
+    const id = t.dataset.edit;
+    const tr = t.closest('tr');
+    if(tr){
+      const tds = tr.querySelectorAll('td');
+      document.getElementById('name').value = tds[1].textContent;
+      document.getElementById('url').value = tds[2].textContent;
+      document.getElementById('active').checked = tds[3].textContent.indexOf('启用')>=0;
+      document.getElementById('order').value = tds[4].textContent||'0';
+      editingId = id;
+      document.getElementById('editing_id').value = id;
+    }
+  }
+  if(t.dataset.del){
+    const id = t.dataset.del;
+    if(!confirm('确定删除该链接吗？')) return;
+    const resp = await fetch('/api/admin/links/'+id, {method:'DELETE', headers:{Authorization:'Bearer '+token}});
+    if(!resp.ok){
+      const data = await resp.json().catch(()=>({}));
+      alert(data && data.error ? data.error : '删除失败');
+      return;
+    }
+    if(editingId === id){
+      editingId = null;
+      document.getElementById('editing_id').value = '';
+    }
+    loadLinks();
+  }
+});
+loadLinks();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+{{ end }}
+

@@ -49,6 +49,8 @@ func Init(mysqlDSN string, redisAddr string, redisPassword string, redisDB int, 
 		&ViewLog{},
 		&AuditLog{},
 		&Menu{},
+		&FriendLink{},
+		&SiteConfig{},
 	)
 	if err != nil {
 		applogger.Error("mysql_auto_migrate_error", err)
@@ -174,4 +176,18 @@ type Menu struct {
 	Order    int
 	ParentID *uint
 	Active   bool
+}
+
+type FriendLink struct {
+	Model
+	Name   string `gorm:"size:128"`
+	URL    string `gorm:"size:512"`
+	Active bool
+	Order  int
+}
+
+type SiteConfig struct {
+	Model
+	Key   string `gorm:"uniqueIndex;size:64"`
+	Value string `gorm:"size:1024"`
 }
